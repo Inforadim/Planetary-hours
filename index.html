@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Efemerida hodin — Kabalistické cykly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vellum:#EDE3CB;
+  --panel:#F5EEDC;
+  --ink:#2B2118;
+  --ink-soft:#5C4F3D;
+  --rubric:#8C2B1A;
+  --gold:#96731F;
+  --gold-deep:#7A5C14;
+  --lapis:#2E4B8F;
+  --rule:#CDBF9E;
+  --f-good:#3F6C52;
+  --f-neutral:#6E6146;
+  --f-tense:#B4581F;
+  --f-bad:#8C2B1A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--vellum);
+  color:var(--ink);
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:1.06rem;
+  line-height:1.55;
+  font-feature-settings:"onum" 1,"liga" 1;
+}
+.wrap{max-width:680px;margin:0 auto;padding:1.4rem 1.1rem 3.5rem}
+
+header{padding:.6rem 0 1rem;border-bottom:3px double var(--rule)}
+header h1{font-weight:500;font-size:2.15rem;line-height:1.1;letter-spacing:.01em}
+header h1 .rubric{color:var(--rubric)}
+header p{font-style:italic;color:var(--ink-soft);margin-top:.35rem;font-size:1rem}
+
+/* ---- Poloha a datum ---- */
+.controls{display:flex;flex-wrap:wrap;gap:.55rem;align-items:flex-end;margin:1.1rem 0 .4rem}
+.field{display:flex;flex-direction:column;gap:.15rem}
+.field span{font-size:.85rem;color:var(--ink-soft);font-style:italic}
+input,button{
+  font-family:inherit;font-size:1rem;color:var(--ink);
+  background:var(--panel);border:1px solid var(--rule);
+  border-radius:2px;padding:.4rem .55rem;
+}
+input:focus-visible,button:focus-visible{outline:2px solid var(--lapis);outline-offset:1px}
+input[type=number]{width:6.2rem}
+input[type=date]{width:10.5rem}
+button{cursor:pointer}
+button.primary{background:var(--ink);color:var(--vellum);border-color:var(--ink)}
+button.primary:hover{background:#3d3226}
+.hint{font-size:.88rem;color:var(--ink-soft);font-style:italic;margin-bottom:1rem}
+
+/* ---- Nyní ---- */
+.now{
+  background:var(--panel);
+  border:1px solid var(--rule);
+  border-radius:3px;
+  padding:1.25rem 1.15rem 1.35rem;
+  margin-top:1.2rem;
+  box-shadow:0 1px 0 rgba(43,33,24,.06);
+}
+.now-line{font-size:.95rem;color:var(--ink-soft);font-style:italic}
+.now h2{
+  font-weight:500;font-size:1.75rem;line-height:1.15;margin:.3rem 0 .15rem;
+}
+.now h2 .glyph{color:var(--gold-deep);font-style:normal}
+.now .times{font-size:.95rem;color:var(--ink-soft)}
+.verdict{margin-top:.8rem;font-size:1.12rem}
+.verdict b{font-weight:600}
+.verdict .fav{font-variant:small-caps;letter-spacing:.03em}
+
+svg#tree{display:block;margin:1.3rem auto .4rem;max-width:320px;width:100%;height:auto}
+.sef-circle{fill:var(--panel);stroke:#B9AA85;stroke-width:1.2}
+.sef-glyph{font-size:15px;fill:#8A7A58;font-family:'EB Garamond',serif}
+.p-line{stroke:#CBBD98;stroke-width:1;stroke-dasharray:none}
+.p-line.faint{stroke-dasharray:2 4;opacity:.65}
+.active-path{stroke:var(--gold);stroke-width:3.4;fill:none;stroke-linecap:round}
+.active-flow{stroke:var(--gold-deep);stroke-width:3.4;fill:none;stroke-linecap:round;stroke-dasharray:5 9}
+@keyframes flow{to{stroke-dashoffset:-14}}
+.animate .active-flow{animation:flow 1s linear infinite}
+@media (prefers-reduced-motion:reduce){.animate .active-flow{animation:none}}
+.sef-active .sef-circle{fill:#EAD9A6;stroke:var(--gold-deep);stroke-width:2}
+.sef-active .sef-glyph{fill:var(--ink)}
+.no-path-note{font-size:.92rem;font-style:italic;color:var(--ink-soft);text-align:center;margin:.2rem 0 .6rem}
+
+/* ---- Blok charakteristiky ---- */
+.detail{margin-top:1rem;border-top:1px solid var(--rule);padding-top:.9rem;display:grid;gap:.7rem}
+.d-item p{margin:0}
+.d-item .cap{color:var(--rubric);font-weight:500}
+.pathline{
+  border-left:3px solid var(--gold);
+  padding:.15rem 0 .15rem .75rem;
+  font-style:italic;color:var(--ink-soft);font-size:1rem;
+}
+
+/* ---- Tabulka hodin ---- */
+section.hours{margin-top:2.2rem}
+section.hours h3{font-weight:500;font-size:1.45rem;margin-bottom:.6rem}
+.h-list{border-top:1px solid var(--rule)}
+.h-row{
+  display:grid;grid-template-columns:2.1rem 1fr auto auto;gap:.6rem;align-items:baseline;
+  width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--rule);
+  border-radius:0;padding:.45rem .3rem;font-size:1rem;cursor:pointer;
+}
+.h-row:hover{background:var(--panel)}
+.h-row.current{background:#EFE3BF}
+.h-row.selected{background:var(--panel);box-shadow:inset 3px 0 0 var(--gold)}
+.h-row .g{color:var(--gold-deep)}
+.h-row .t{color:var(--ink-soft);font-size:.95rem}
+.dot{width:.6rem;height:.6rem;border-radius:50%;display:inline-block;transform:translateY(.02rem)}
+.legend{display:flex;flex-wrap:wrap;gap:1rem;margin-top:.7rem;font-size:.92rem;color:var(--ink-soft)}
+.legend span{display:flex;gap:.35rem;align-items:center}
+
+.night-head{font-style:italic;color:var(--ink-soft);padding:.7rem .3rem .3rem;border-bottom:1px solid var(--rule)}
+
+footer{margin-top:3rem;padding-top:1rem;border-top:3px double var(--rule);font-size:.9rem;color:var(--ink-soft);font-style:italic}
+footer p+p{margin-top:.4rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Efemerida <span class="rubric">hodin</span></h1>
+  <p>Kabalistické cykly podle J. C. Lisiewského. Tok se čte vždy z&nbsp;hodiny do&nbsp;dne; sestupný tok po Stromu je příznivý, vzestupný obrací kartu.</p>
+</header>
+
+<div class="controls">
+  <label class="field"><span>šířka</span><input id="lat" type="number" step="0.01" value="50.08"></label>
+  <label class="field"><span>délka</span><input id="lon" type="number" step="0.01" value="14.44"></label>
+  <label class="field"><span>datum</span><input id="date" type="date"></label>
+  <button class="primary" id="btnCalc">Vypočítat</button>
+  <button id="btnGeo">Má poloha</button>
+</div>
+<p class="hint">Hodiny se počítají z východu a západu Slunce pro zadanou polohu; výchozí je Praha. Planetární den běží od východu Slunce do východu Slunce.</p>
+
+<section class="now" id="nowPanel">
+  <p class="now-line" id="nowLine">—</p>
+  <h2 id="nowTitle">—</h2>
+  <p class="times" id="nowTimes">—</p>
+  <p class="verdict" id="nowVerdict">—</p>
+
+  <svg id="tree" viewBox="0 0 300 400" role="img" aria-label="Strom života s vyznačenou aktivní stezkou"></svg>
+  <p class="no-path-note" id="noPathNote" hidden>Sefiry dne a hodiny nespojuje žádná stezka — platí vliv hodiny, který moderuje den v&nbsp;poměru čtyři ku jedné.</p>
+
+  <div class="detail">
+    <div class="d-item"><p><span class="cap">Rozpoložení.</span> <span id="dMind">—</span></p></div>
+    <div class="d-item"><p><span class="cap">Typické události.</span> <span id="dEvents">—</span></p></div>
+    <div class="d-item"><p><span class="cap">Vhodné použití.</span> <span id="dUse">—</span></p></div>
+    <p class="pathline" id="dPath">—</p>
+  </div>
+</section>
+
+<section class="hours">
+  <h3 id="hoursTitle">Hodiny dne</h3>
+  <div class="h-list" id="hourList"></div>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--f-good)"></i>příznivá</span>
+    <span><i class="dot" style="background:var(--f-neutral)"></i>neutrální</span>
+    <span><i class="dot" style="background:var(--f-tense)"></i>napjatá</span>
+    <span><i class="dot" style="background:var(--f-bad)"></i>nepříznivá</span>
+  </div>
+</section>
+
+<footer>
+  <p>Hodnocení kombinací je odvozeno z logiky toku: sestupný tok = karta vzpřímeně = příznivá; vzestupný tok = karta obráceně. Výjimky dané knihou: Vůz, Věž a Ďábel jsou nepříznivé v obou směrech; XIX Slunce příznivé v obou; Síla vzestupně dává použitelnou fyzickou sílu; Kolo štěstí vzestupně vede k témuž zisku oklikou. Stejná planeta pro den i hodinu destabilizuje.</p>
+  <p>Výpočet používá skutečný občanský čas prohlížeče; hranice hodin jsou astronomické, letní čas na ně nemá vliv.</p>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ============ Planety a sefiry ============ */
+const P = {
+  saturn:{cz:"Saturn", gl:"♄", sef:3, sefName:"Bina"},
+  jupiter:{cz:"Jupiter",gl:"♃", sef:4, sefName:"Chesed"},
+  mars:{cz:"Mars",     gl:"♂", sef:5, sefName:"Gevura"},
+  sun:{cz:"Slunce",    gl:"☉", sef:6, sefName:"Tiferet"},
+  venus:{cz:"Venuše",  gl:"♀", sef:7, sefName:"Necach"},
+  mercury:{cz:"Merkur",gl:"☿", sef:8, sefName:"Hod"},
+  moon:{cz:"Luna",     gl:"☽", sef:9, sefName:"Jesod"}
+};
+const CHALDEAN = ["saturn","jupiter","mars","sun","venus","mercury","moon"];
+const DAY_RULER = ["sun","moon","mars","mercury","jupiter","venus","saturn"];
+const DAY_CZ = ["neděli","pondělí","úterý","středu","čtvrtek","pátek","sobotu"];
+const DAY_CZ_NOM = ["Neděle","Pondělí","Úterý","Středa","Čtvrtek","Pátek","Sobota"];
+const FAV = {
+  good:{label:"příznivá",v:"--f-good"},
+  neutral:{label:"neutrální",v:"--f-neutral"},
+  tense:{label:"napjatá",v:"--f-tense"},
+  bad:{label:"nepříznivá",v:"--f-bad"}
+};
+
+/* ============ Stezky: klíč "menší-větší sefira" ============ */
+const PATHS = {
+  "3-6":{n:17,heb:"ז Zajin",card:"VI Milenci"},
+  "3-5":{n:18,heb:"ח Chet",card:"VII Vůz"},
+  "4-5":{n:19,heb:"ט Tet",card:"VIII Síla"},
+  "4-6":{n:20,heb:"י Jod",card:"IX Poustevník"},
+  "4-7":{n:21,heb:"כ Kaf",card:"X Kolo štěstí"},
+  "5-6":{n:22,heb:"ל Lamed",card:"XI Spravedlnost"},
+  "5-8":{n:23,heb:"מ Mem",card:"XII Viselec"},
+  "6-7":{n:24,heb:"נ Nun",card:"XIII Smrt"},
+  "6-9":{n:25,heb:"ס Samech",card:"XIV Umírněnost"},
+  "6-8":{n:26,heb:"ע Ajin",card:"XV Ďábel"},
+  "7-8":{n:27,heb:"פ Pe",card:"XVI Věž"},
+  "7-9":{n:28,heb:"צ Cade",card:"XVII Hvězda"},
+  "8-9":{n:30,heb:"ר Reš",card:"XIX Slunce"}
+};
+
+/* ============ 49 kombinací (opravená data) ============ */
+const C = {};
+function def(day,hour,fav,mind,events,use,path){ C[day+"_"+hour]={fav,mind,events,use,path}; }
+
+/* --- Neděle (Slunce) --- */
+def("sun","sun","bad","Dvojité Slunce: přebujelé plány, nepraktické scénáře, ego bez protiváhy.","Přehnané sliby, velikášství, rozptýlení energie.","Nic nezahajovat. Dvojitý vliv destabilizuje vše, co Slunce řídí.","Vlastní hodina vládce dne — čtyřnásobné umocnění působí rozkladně.");
+def("sun","moon","tense","Nálady rozkolísávají jasnost dne. Zájmy se kříží.","Změny plánů, nevyrovnanost, kolize záměrů.","Odložit slučování, vyjednávání i léčebné kroky.","Cesta 25 (Samech, XIV Umírněnost) — vzestupný tok: Jesod → Tiferet. Obráceně: konflikt zájmů, nevyváženost.");
+def("sun","mars","good","Rázná rozhodnost ve službě rovnováhy. Síla ví, komu patří.","Spravedlivé rozuzlení, obrana proti nespravedlivé hrozbě.","Férové řešení sporů, start vnitřního rozvoje, konstruktivní martické činnosti.","Cesta 22 (Lamed, XI Spravedlnost) — sestupný tok: Gevura → Tiferet. Vzpřímeně: harmonie, rovnováha, spravedlnost.");
+def("sun","mercury","bad","Slovo svádí k ovládání. Chytrost bez světla.","Manipulace, posedlost hmotným ziskem, past výhodnosti.","Vyhnout se. Ďábla Lisiewski zakazuje pro denní užití v obou směrech.","Cesta 26 (Ajin, XV Ďábel) — vzestupný tok: Hod → Tiferet. Nepoužívat bez ohledu na směr toku.");
+def("sun","jupiter","good","Velkorysost a moudré vedení. Svět se otevírá.","Příležitost, protekce, dobrá rada.","Nejlepší okno neděle. Žádosti, expanze, plánování růstu.","Cesta 20 (Jod, IX Poustevník) — sestupný tok: Chesed → Tiferet. Vzpřímeně: obezřetnost, moudré vedení.");
+def("sun","venus","tense","Rozkoš zastírá růst. Sladká stagnace.","Rozklad dohod, hnití odkládaných věcí, prázdný požitek.","Neuzavírat vztahy ani dohody; nechat kvasit, nezačínat.","Cesta 24 (Nun, XIII Smrt) — vzestupný tok: Necach → Tiferet. Obráceně: rozklad, stagnace.");
+def("sun","saturn","good","Vážnost dává dni páteř. Zkouška, kterou lze složit.","Úspěšné uzavření životní zkoušky, nová náklonnost či zájem.","Rozhodnutí s dlouhým dosahem, právní kroky, hluboká práce.","Cesta 17 (Zajin, VI Milenci) — sestupný tok: Bina → Tiferet. Vzpřímeně: zkouška úspěšně završená, nová volba.");
+
+/* --- Pondělí (Luna) --- */
+def("moon","moon","bad","Dvojitá Luna: přeludy, snovost bez břehů, hranice vjemu a představy mizí.","Klam, náladovost, ztráta půdy pod nohama.","Nic nezahajovat. Ani věštění — zrcadlo je zvlněné.","Vlastní hodina vládce dne — dvojitý vliv destabilizuje.");
+def("moon","saturn","neutral","Tíha a hloubka na citlivém pozadí.","Staré závazky, pomalé úřady, vzpomínky.","Platí vliv hodiny: právní věci, hluboké přemýšlení, literární práce. Ne žádosti o přízeň ani investice.","Bina a Jesod nemají spojnici — řiďte se hodinou Saturnu (moderuje den 4:1).");
+def("moon","jupiter","good","Klidná důvěra, emocionální velkorysost.","Podpora, útěcha, dobrá zpráva.","Platí vliv hodiny: léčení, rodina, žádost o pomoc, finanční záležitosti.","Chesed a Jesod nemají spojnici — řiďte se hodinou Jupiteru.");
+def("moon","mars","neutral","Energie bez kanálu. Reagujete dřív, než rozumíte.","Podrážděnost doma, drobné střety.","Platí vliv hodiny: fyzická práce, mechanika, trénink. Nic nevyjednávat, o nic nežádat.","Gevura a Jesod nemají spojnici — řiďte se hodinou Marsu.");
+def("moon","sun","good","Nálada se vyjasňuje, střed se vrací.","Ujasnění, zdrženlivé sloučení, dozrálé rozhodnutí.","Vyjednávání, kompromis, léčení, spojování protikladů.","Cesta 25 (Samech, XIV Umírněnost) — sestupný tok: Tiferet → Jesod. Vzpřímeně: úspěšné sloučení, míra.");
+def("moon","venus","good","Něha, naděje, estetická vnímavost.","Setkání, usmíření, tvůrčí vzepětí, nečekaná pomoc.","Nejlepší okno pondělí. Vztahy, umění, nové začátky, žádosti.","Cesta 28 (Cade, XVII Hvězda) — sestupný tok: Necach → Jesod. Vzpřímeně: radostné vyhlídky, naděje.");
+def("moon","mercury","good","Mysl jasná a plynulá, slova nacházejí formu.","Dobré zprávy, snadné dohody, vhledy.","Psaní, studium, obchod, smlouvy, mystická práce. Z této Cesty nelze sejít.","Cesta 30 (Reš, XIX Slunce) — sestupný tok: Hod → Jesod. Vzpřímeně: zdar, radost, úspěch.");
+
+/* --- Úterý (Mars) --- */
+def("mars","mars","bad","Dvojitý Mars: hněv hledá záminku, síla požírá sebe.","Konflikt, úraz, zbrklá destrukce.","Nic nezahajovat, nikoho nekonfrontovat. Dvojitý vliv destabilizuje.","Vlastní hodina vládce dne — čtyřnásobné umocnění působí rozkladně.");
+def("mars","saturn","tense","Železná kázeň v bojovém dni. Vítězství možné, ale vyčerpávající.","Tvrdý střet s formou, boj o každý krok.","Jen nezbytné bitvy. Vozu je radno se vyhnout i po směru toku — daň je vysoká.","Cesta 18 (Chet, VII Vůz) — sestupný tok: Bina → Gevura. I vzpřímeně: vítězství až po vyčerpávající bitvě.");
+def("mars","jupiter","neutral","Síla se přelévá do těla. Vytrvalost, fyzická odolnost.","Výkon, prosazení tělem, tvrdá práce.","Sport, silový trénink, fyzické výkony. Ne duchovní či mocenské kroky.","Cesta 19 (Tet, VIII Síla) — vzestupný tok: Chesed → Gevura. Obráceně: síla fyzické povahy — použitelná pro tělesné záležitosti.");
+def("mars","sun","tense","Sebejistota se zvrhává v zaujatost. Právo silnějšího.","Nespravedlnost, konflikt, křivda — vlastní či cizí.","Nezahajovat spory ani obranu; co vypustíte, vrátí se vám. Vyčkat.","Cesta 22 (Lamed, XI Spravedlnost) — vzestupný tok: Tiferet → Gevura. Obráceně: nespravedlnost, nerovnováha, netolerance.");
+def("mars","venus","good","Venušanské okno uprostřed bojovného dne.","Krása, přízeň, hladké materiální kroky.","Platí vliv hodiny: nové projekty, finance, umění, vztahy. Venuše žehná téměř všemu — jen ji nezneužít proti druhým.","Gevura a Necach nemají spojnici — řiďte se hodinou Venuše (moderuje den 4:1).");
+def("mars","mercury","tense","Chytrost ve službě sebestřednosti. Prázdná vypočítavost.","Úskoky, dohody bez obsahu, plané sliby.","Prázdná Cesta při vzestupu — nic důležitého nepodnikat.","Cesta 23 (Mem, XII Viselec) — vzestupný tok: Hod → Gevura. Obráceně: sobectví, lstivost, jalový výsledek.");
+def("mars","moon","neutral","Cit tlumí ostří dne. Kolísavý klid.","Proměnlivé nálady, drobné zprávy.","Platí vliv hodiny: setba, cesty po vodě, literární práce, medicína.","Gevura a Jesod nemají spojnici — řiďte se hodinou Luny.");
+
+/* --- Středa (Merkur) --- */
+def("mercury","mercury","bad","Dvojitý Merkur: myšlenky se točí dokola a předbíhají se.","Přehlcení informacemi, ukvapené slovo, chyby z chytrosti.","Nic nezahajovat, nepodepisovat. Dvojitý vliv destabilizuje.","Vlastní hodina vládce dne — čtyřnásobné umocnění působí rozkladně.");
+def("mercury","saturn","neutral","Hloubka zpomaluje těkavý den.","Vážné zprávy, úřední záležitosti.","Platí vliv hodiny: hluboké studium, právo, literární práce s vhledem.","Bina a Hod nemají spojnici — řiďte se hodinou Saturnu.");
+def("mercury","jupiter","good","Šíře a přízeň v den výměny.","Dobré obchody, přejícné dohody.","Platí vliv hodiny: finance, žádosti, expanze, velkorysá jednání.","Chesed a Hod nemají spojnici — řiďte se hodinou Jupiteru.");
+def("mercury","mars","good","Obětovat menší pro větší. Ostrá mysl s odvahou.","Prozíravé investice, moudrá rozhodnutí, zisk skrze vzdání se něčeho.","Investice, jednání vyžadující odvahu i rozum, obrat perspektivy.","Cesta 23 (Mem, XII Viselec) — sestupný tok: Gevura → Hod. Vzpřímeně: moudrost skrze oběť, zralé poznání.");
+def("mercury","sun","bad","Lesk svádí, hmota poutá.","Posedlost ziskem, mocenské hry, závislost.","Vyhnout se. Ďábla Lisiewski zakazuje pro denní užití v obou směrech.","Cesta 26 (Ajin, XV Ďábel) — sestupný tok: Tiferet → Hod. Nepoužívat bez ohledu na směr toku.");
+def("mercury","venus","bad","Pod povrchem půvabu praská základ.","Náhlý pád, zhroucení plánů, pohroma.","Věž je nejnebezpečnější Cesta Stromu. Cokoli podniknuto, přinese zkázu — v obou směrech.","Cesta 27 (Pe, XVI Věž) — sestupný tok: Necach → Hod. Přísně se vyhnout bez ohledu na směr.");
+def("mercury","moon","good","Představivost oživuje rozum.","Zdar s mírným zdržením, drobné zádrhele, jež se vyřeší.","Psaní, studium, obchod — výsledky téměř stejně dobré jako po směru. Z této Cesty nelze sejít.","Cesta 30 (Reš, XIX Slunce) — vzestupný tok: Jesod → Hod. I obráceně: úspěch, jen o stupeň menší.");
+
+/* --- Čtvrtek (Jupiter) --- */
+def("jupiter","jupiter","bad","Dvojitý Jupiter: štědrost bez míry, expanze bez základů.","Přestřelené sliby, rozhazovačnost, falešný optimismus.","Nic nezahajovat, zvláště ne finance. Dvojitý vliv destabilizuje.","Vlastní hodina vládce dne — čtyřnásobné umocnění působí rozkladně.");
+def("jupiter","saturn","neutral","Kázeň krotí rozmach.","Zpomalení, vážné závazky, dlouhé lhůty.","Platí vliv hodiny: právo, nemovitosti, hluboká rozvaha, splácení dluhů.","Bina a Chesed nemají spojnici — řiďte se hodinou Saturnu.");
+def("jupiter","mars","good","Odvaha nesená milosrdenstvím. Svatý bojovník.","Vítězství nad přesilou, prosazení dobré věci.","Odvážné jednání, konfrontace za správnou věc, rázné kroky s požehnáním.","Cesta 19 (Tet, VIII Síla) — sestupný tok: Gevura → Chesed. Vzpřímeně: duchovní síla přemáhající protivenství.");
+def("jupiter","sun","tense","Přílišná opatrnost dusí rozmach.","Váhání, izolace, promeškané kroky.","Nezahajovat; vhodné jen tiché dokončování v ústraní.","Cesta 20 (Jod, IX Poustevník) — vzestupný tok: Tiferet → Chesed. Obráceně: přehnaná zdrženlivost, uzavření.");
+def("jupiter","venus","neutral","Štěstěna přeje, ale oklikou.","Výsledek dobrý, cesta klikatá: více pokusů, změny plánu.","Lze jednat — týž prospěch jako po směru, jen nepřímo a s obcházkami.","Cesta 21 (Kaf, X Kolo štěstí) — vzestupný tok: Necach → Chesed. Obráceně: zisk dosažen nepřímou cestou.");
+def("jupiter","mercury","good","Bystrost v přejícném dni.","Snadné dohody, dobré zprávy, obchodní zdar.","Platí vliv hodiny: obchod, psaní, studium, mystická práce — Lisiewského vlastní ukázka pravidla hodiny.","Chesed a Hod nemají spojnici — řiďte se hodinou Merkuru (moderuje den 4:1).");
+def("jupiter","moon","neutral","Cit rozpouští velké plány do nálad.","Proměnlivost, odklad, měkké dojmy.","Platí vliv hodiny: setba, cesty, literární práce, medicína.","Chesed a Jesod nemají spojnici — řiďte se hodinou Luny.");
+
+/* --- Pátek (Venuše) --- */
+def("venus","venus","bad","Dvojitá Venuše: požitek bez dna, krása bez formy.","Přemíra, marnotratnost, citové přepětí.","Nic nezahajovat. Dvojitý vliv destabilizuje i milostné záležitosti.","Vlastní hodina vládce dne — čtyřnásobné umocnění působí rozkladně.");
+def("venus","saturn","neutral","Vážný tón v lehkém dni.","Střízlivění, závazky, forma pro city.","Platí vliv hodiny: právo, majetek, hluboká práce. Ne žádosti o přízeň.","Bina a Necach nemají spojnici — řiďte se hodinou Saturnu.");
+def("venus","jupiter","good","Štěstěna v plné síle. Kolo se točí vzhůru.","Náhlý zisk, šťastný obrat, přízeň.","Jedna z nejlepších kombinací týdne: spekulace, žádosti, nové začátky.","Cesta 21 (Kaf, X Kolo štěstí) — sestupný tok: Chesed → Necach. Vzpřímeně: štěstí, příznivý obrat.");
+def("venus","mars","neutral","Vášeň dostává ostří.","Přitažlivost i tření, energické kroky.","Platí vliv hodiny: fyzická práce, mechanika, smyslové záležitosti. Ne žádosti, ne právo.","Gevura a Necach nemají spojnici — řiďte se hodinou Marsu.");
+def("venus","sun","good","Světlo završuje. Co dozrálo, smí skončit.","Ukončení kapitoly, hluboká proměna, očista.","Pro uzavírání a transformace — proces náročný, výsledky skvostné. Ne pro nové začátky.","Cesta 24 (Nun, XIII Smrt) — sestupný tok: Tiferet → Necach. Vzpřímeně: konec a přerod.");
+def("venus","mercury","bad","Slovo bortí, co půvab postavil.","Zhroucení, roztržka, pohroma.","Věž je nejnebezpečnější Cesta Stromu. Cokoli podniknuto, přinese zkázu — v obou směrech.","Cesta 27 (Pe, XVI Věž) — vzestupný tok: Hod → Necach. Přísně se vyhnout bez ohledu na směr.");
+def("venus","moon","tense","Naděje se rozpíjí do stesku.","Zklamaná očekávání, prázdnota po slavnosti.","Neupínat se, neslibovat; počkat na jinou hodinu.","Cesta 28 (Cade, XVII Hvězda) — vzestupný tok: Jesod → Necach. Obráceně: zmařené naděje, prázdnota.");
+
+/* --- Sobota (Saturn) --- */
+def("saturn","saturn","bad","Dvojitý Saturn: tíha bez východiska, forma drtí obsah.","Melancholie, zablokování, tvrdé překážky.","Nic nezahajovat. Dvojitý vliv destabilizuje.","Vlastní hodina vládce dne — čtyřnásobné umocnění působí rozkladně.");
+def("saturn","jupiter","good","Milost prostupuje kázní.","Pomoc, úleva, přejícné vyřízení.","Platí vliv hodiny: finance, žádosti, velkorysá jednání.","Chesed a Bina nemají spojnici — řiďte se hodinou Jupiteru.");
+def("saturn","mars","bad","Síla naráží na hradbu formy.","Porážka po vyčerpávající bitvě, marný boj.","Vůz obráceně — nejtěžší konstelace týdne. Nebojovat, vyčkat.","Cesta 18 (Chet, VII Vůz) — vzestupný tok: Gevura → Bina. Obráceně: porážka po bitvě. Vyhnout se.");
+def("saturn","sun","tense","Světlo pohasíná v šeru formy.","Nezdar zkoušky, vyhasnutí náklonnosti či zájmu.","Nezahajovat zkoušky, jednání ani vztahy; revize a uzavírání ano.","Cesta 17 (Zajin, VI Milenci) — vzestupný tok: Tiferet → Bina. Obráceně: nezdařená zkouška, ztráta náklonnosti.");
+def("saturn","venus","good","Půvab změkčuje kámen.","Smír, krása ve strohém dni, hmotný prospěch.","Platí vliv hodiny: vztahy, umění, finance, nové podniky — Venuše žehná téměř všemu.","Bina a Necach nemají spojnici — řiďte se hodinou Venuše.");
+def("saturn","mercury","good","Jasná mysl v tichém dni.","Soustředěná práce, dobré texty, promyšlené dohody.","Platí vliv hodiny: psaní, studium, obchod, bádání.","Bina a Hod nemají spojnici — řiďte se hodinou Merkuru.");
+def("saturn","moon","neutral","Ticho a hloubka podvědomí.","Sny, vzpomínky, pomalé proudy.","Platí vliv hodiny: meditace, literární práce, medicína, setba.","Bina a Jesod nemají spojnici — řiďte se hodinou Luny.");
+
+/* ============ Astronomie: východ a západ Slunce (NOAA) ============ */
+function toJulian(d){ return d/86400000 + 2440587.5; }
+function fromJulian(j){ return new Date((j-2440587.5)*86400000); }
+function sunTimes(date, lat, lon){
+  // date: Date v místní zóně; počítáme pro její kalendářní den
+  const rad = Math.PI/180;
+  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  const J = toJulian(dayStart);
+  const n = Math.round(J - 2451545.0 + 0.0009 - (-lon)/360) ;
+  const Jstar = 2451545.0 + 0.0009 + (-lon)/360 + n;
+  const M = (357.5291 + 0.98560028*(Jstar-2451545)) % 360;
+  const Mr = M*rad;
+  const Ceq = 1.9148*Math.sin(Mr) + 0.02*Math.sin(2*Mr) + 0.0003*Math.sin(3*Mr);
+  const lambda = (M + Ceq + 180 + 102.9372) % 360;
+  const lr = lambda*rad;
+  const Jtransit = Jstar + 0.0053*Math.sin(Mr) - 0.0069*Math.sin(2*lr);
+  const delta = Math.asin(Math.sin(lr)*Math.sin(23.4397*rad));
+  const cosH = (Math.sin(-0.833*rad) - Math.sin(lat*rad)*Math.sin(delta)) /
+               (Math.cos(lat*rad)*Math.cos(delta));
+  if (cosH < -1 || cosH > 1) return null; // polární den/noc
+  const H = Math.acos(cosH)/rad;
+  const Jset = Jtransit + H/360;
+  const Jrise = Jtransit - H/360;
+  return { rise: fromJulian(Jrise), set: fromJulian(Jset) };
+}
+
+/* ============ Planetární hodiny ============ */
+function buildHours(date, lat, lon){
+  // planetární den = od východu Slunce daného kalendářního dne do východu následujícího
+  const t1 = sunTimes(date, lat, lon);
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate()+1);
+  const t2 = sunTimes(next, lat, lon);
+  if(!t1 || !t2) return null;
+  const dow = date.getDay();
+  const ruler = DAY_RULER[dow];
+  const startIdx = CHALDEAN.indexOf(ruler);
+  const hours = [];
+  const dayLen = (t1.set - t1.rise)/12;
+  const nightLen = (t2.rise - t1.set)/12;
+  for(let i=0;i<12;i++){
+    hours.push({idx:i+1, night:false,
+      planet:CHALDEAN[(startIdx+i)%7],
+      start:new Date(t1.rise.getTime()+i*dayLen),
+      end:new Date(t1.rise.getTime()+(i+1)*dayLen)});
+  }
+  for(let i=0;i<12;i++){
+    hours.push({idx:i+1, night:true,
+      planet:CHALDEAN[(startIdx+12+i)%7],
+      start:new Date(t1.set.getTime()+i*nightLen),
+      end:new Date(t1.set.getTime()+(i+1)*nightLen)});
+  }
+  return {dow, ruler, rise:t1.rise, set:t1.set, nextRise:t2.rise, hours};
+}
+function planetaryDate(now, lat, lon){
+  // pokud je před dnešním východem Slunce, běží ještě včerejší planetární den
+  const t = sunTimes(now, lat, lon);
+  if(t && now < t.rise){
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate()-1);
+  }
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+/* ============ Strom života — geometrie ============ */
+const SEF = {
+  1:{x:150,y:34,gl:""}, 2:{x:226,y:80,gl:""}, 3:{x:74,y:80,gl:"♄"},
+  4:{x:226,y:160,gl:"♃"}, 5:{x:74,y:160,gl:"♂"}, 6:{x:150,y:208,gl:"☉"},
+  7:{x:226,y:276,gl:"♀"}, 8:{x:74,y:276,gl:"☿"}, 9:{x:150,y:326,gl:"☽"},
+  10:{x:150,y:382,gl:"⊕"}
+};
+const ALL_LINES = [[1,2],[1,3],[1,6],[2,3],[2,6],[2,4],[3,6],[3,5],[4,5],[4,6],[4,7],[5,6],[5,8],[6,7],[6,8],[6,9],[7,8],[7,9],[8,9],[7,10],[8,10],[9,10]];
+const FAINT = new Set(["1-2","1-3","1-6","2-3","2-6","2-4","7-10","8-10","9-10"]);
+
+function drawTree(hourPlanet, dayPlanet){
+  const svg = document.getElementById("tree");
+  svg.innerHTML = "";
+  const ns = "http://www.w3.org/2000/svg";
+  // linky
+  for(const [a,b] of ALL_LINES){
+    const l = document.createElementNS(ns,"line");
+    l.setAttribute("x1",SEF[a].x); l.setAttribute("y1",SEF[a].y);
+    l.setAttribute("x2",SEF[b].x); l.setAttribute("y2",SEF[b].y);
+    l.setAttribute("class","p-line"+(FAINT.has(a+"-"+b)?" faint":""));
+    svg.appendChild(l);
+  }
+  // aktivní stezka: z hodiny do dne
+  const hs = P[hourPlanet].sef, ds = P[dayPlanet].sef;
+  const key = Math.min(hs,ds)+"-"+Math.max(hs,ds);
+  const hasPath = hs!==ds && PATHS[key];
+  if(hasPath){
+    const base = document.createElementNS(ns,"line");
+    base.setAttribute("x1",SEF[hs].x); base.setAttribute("y1",SEF[hs].y);
+    base.setAttribute("x2",SEF[ds].x); base.setAttribute("y2",SEF[ds].y);
+    base.setAttribute("class","active-path");
+    svg.appendChild(base);
+    const flow = document.createElementNS(ns,"line");
+    flow.setAttribute("x1",SEF[hs].x); flow.setAttribute("y1",SEF[hs].y);
+    flow.setAttribute("x2",SEF[ds].x); flow.setAttribute("y2",SEF[ds].y);
+    flow.setAttribute("class","active-flow");
+    svg.appendChild(flow);
+    svg.classList.add("animate");
+  } else {
+    svg.classList.remove("animate");
+  }
+  // sefiry
+  for(const n in SEF){
+    const g = document.createElementNS(ns,"g");
+    const active = (+n===hs || +n===ds);
+    if(active) g.setAttribute("class","sef-active");
+    const c = document.createElementNS(ns,"circle");
+    c.setAttribute("cx",SEF[n].x); c.setAttribute("cy",SEF[n].y);
+    c.setAttribute("r", active?20:16);
+    c.setAttribute("class","sef-circle");
+    g.appendChild(c);
+    const t = document.createElementNS(ns,"text");
+    t.setAttribute("x",SEF[n].x); t.setAttribute("y",SEF[n].y+5);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("class","sef-glyph");
+    t.textContent = SEF[n].gl || ["","I","II"][n] || "";
+    g.appendChild(t);
+    svg.appendChild(g);
+  }
+  document.getElementById("noPathNote").hidden = !!hasPath || hs===ds;
+}
+
+/* ============ UI ============ */
+const fmt = d => d.toLocaleTimeString("cs-CZ",{hour:"2-digit",minute:"2-digit"});
+let state = {data:null, selected:null};
+
+function favColor(k){ return getComputedStyle(document.documentElement).getPropertyValue(FAV[k].v).trim(); }
+
+function showHour(h){
+  state.selected = h;
+  const d = state.data;
+  const combo = C[d.ruler+"_"+h.planet];
+  const isNow = new Date() >= h.start && new Date() < h.end &&
+    d.rise.toDateString ? (new Date() >= h.start && new Date() < h.end) : false;
+  document.getElementById("nowLine").textContent =
+    (isNow ? "Právě běží" : "Vybraná hodina") + " — " +
+    (h.night ? "noční" : "denní") + " hodina " + h.idx;
+  document.getElementById("nowTitle").innerHTML =
+    '<span class="glyph">'+P[h.planet].gl+'</span> Hodina '+P[h.planet].cz+" v "+DAY_CZ[d.dow];
+  document.getElementById("nowTimes").textContent =
+    fmt(h.start)+"–"+fmt(h.end)+" · hodina: "+P[h.planet].sef+" "+P[h.planet].sefName+
+    " · den: "+P[d.ruler].sef+" "+P[d.ruler].sefName;
+  const v = document.getElementById("nowVerdict");
+  v.innerHTML = '<b class="fav" style="color:'+favColor(combo.fav)+'">'+FAV[combo.fav].label+'.</b> '+combo.mind;
+  document.getElementById("dMind").textContent = combo.mind;
+  document.getElementById("dEvents").textContent = combo.events;
+  document.getElementById("dUse").textContent = combo.use;
+  document.getElementById("dPath").textContent = combo.path;
+  drawTree(h.planet, d.ruler);
+  document.querySelectorAll(".h-row").forEach(r=>r.classList.remove("selected"));
+  const row = document.getElementById("hrow-"+(h.night?"n":"d")+h.idx);
+  if(row) row.classList.add("selected");
+}
+
+function renderHours(){
+  const d = state.data;
+  const list = document.getElementById("hourList");
+  list.innerHTML = "";
+  const now = new Date();
+  let currentHour = null;
+  const addRow = h => {
+    const combo = C[d.ruler+"_"+h.planet];
+    const b = document.createElement("button");
+    b.className = "h-row";
+    b.id = "hrow-"+(h.night?"n":"d")+h.idx;
+    if(now >= h.start && now < h.end){ b.classList.add("current"); currentHour = h; }
+    b.innerHTML =
+      '<span class="g">'+P[h.planet].gl+'</span>'+
+      '<span>'+P[h.planet].cz+'</span>'+
+      '<span class="t">'+fmt(h.start)+"–"+fmt(h.end)+'</span>'+
+      '<span class="dot" style="background:'+favColor(combo.fav)+'"></span>';
+    b.addEventListener("click",()=>showHour(h));
+    list.appendChild(b);
+  };
+  d.hours.filter(h=>!h.night).forEach(addRow);
+  const nh = document.createElement("p");
+  nh.className = "night-head";
+  nh.textContent = "Hodiny noci — od západu Slunce ("+fmt(d.set)+") do východu ("+fmt(d.nextRise)+")";
+  list.appendChild(nh);
+  d.hours.filter(h=>h.night).forEach(addRow);
+  return currentHour;
+}
+
+function recalc(customDate){
+  const lat = parseFloat(document.getElementById("lat").value);
+  const lon = parseFloat(document.getElementById("lon").value);
+  if(isNaN(lat)||isNaN(lon)) return;
+  const now = new Date();
+  let date;
+  if(customDate){
+    const [y,m,dd] = customDate.split("-").map(Number);
+    date = new Date(y, m-1, dd);
+  } else {
+    date = planetaryDate(now, lat, lon);
+    document.getElementById("date").value =
+      date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+  }
+  const data = buildHours(date, lat, lon);
+  if(!data){
+    document.getElementById("nowVerdict").textContent =
+      "Pro tuto polohu a datum Slunce nevychází ani nezapadá — planetární hodiny nelze sestavit.";
+    return;
+  }
+  state.data = data;
+  document.getElementById("hoursTitle").textContent =
+    DAY_CZ_NOM[data.dow]+" — den "+P[data.ruler].cz+" ("+P[data.ruler].sef+" "+P[data.ruler].sefName+
+    "), východ "+fmt(data.rise)+", západ "+fmt(data.set);
+  const cur = renderHours();
+  showHour(cur || data.hours[0]);
+}
+
+document.getElementById("btnCalc").addEventListener("click",()=>{
+  recalc(document.getElementById("date").value || null);
+});
+document.getElementById("date").addEventListener("change",e=>recalc(e.target.value));
+document.getElementById("btnGeo").addEventListener("click",()=>{
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById("lat").value = pos.coords.latitude.toFixed(2);
+    document.getElementById("lon").value = pos.coords.longitude.toFixed(2);
+    recalc(null);
+  });
+});
+
+recalc(null);
+</script>
+</body>
+</html>
